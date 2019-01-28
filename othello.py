@@ -37,7 +37,6 @@ class OthelloGame:
 		newX = int(x / 75)
 		newY = int(y / 75)
 		index = newY * 8 + newX
-		print(self.possible_moves)
 		if index in self.possible_moves:
 			self.calculate_taken(index)
 			color = self.get_color()
@@ -45,6 +44,11 @@ class OthelloGame:
 			self.w.create_oval(newX*76,newY*76,(newX+1)*74,(newY+1)*74,fill=color, outline = color)
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			self.render_board_for_next_player()
+			if(self.terminal_test()):
+				print('Game finished! Neither player can make a valid move.')
+				# TODO popup and show score
+		else:
+			print('Not a valid position. Please choose one of the red dots!')
 
 
 
@@ -52,6 +56,7 @@ class OthelloGame:
 		self.legalMoves()
 		self.render_board()
 		self.show_possible_moves()
+		print(self.possible_moves)
 		if(len(self.possible_moves) == 0):
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 		self.changeHeader()
@@ -149,6 +154,29 @@ class OthelloGame:
 		Label(self.master, textvariable=self.score_var).pack()
 		self.w.pack()
 		self.master.mainloop()
+
+	def terminal_test(self): # when both players consecutively can't make any valid moves -> game finished!
+		if(len(self.possible_moves) == 0):
+			self.legalMoves() # check next player's possible moves
+			if(len(self.possible_moves) == 0):
+				return True
+		else:
+			return False
+
+'''
+	def cutoff_test(state, depth)
+		alpha
+
+
+	def search_pruning(state, game, d=4, cutoff_test = None, eval_f = None):
+		def max_value(state, alpha, beta, depth):
+			if cutoff_test(state, depth):
+				return eval_f(state)
+			v = float('inf')
+			for idx in self.possible_moves:
+				v = max(v, min_value())
+'''
+
 
 new_game = OthelloGame()
 
