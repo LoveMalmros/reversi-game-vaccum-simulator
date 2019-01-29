@@ -34,10 +34,10 @@ class OthelloGame:
 			self.turn_var.set('TURN: BLACK')
 
 	def put_piece(self, x,y):
-		newX = int(x / 75)
-		newY = int(y / 75)
-		index = newY * 8 + newX
-		if index in self.possible_moves:
+		if self.valid_move(x,y):
+			newX = int(x / 75)
+			newY = int(y / 75)
+			index = newY * 8 + newX
 			self.calculate_taken(index)
 			color = self.get_color()
 			np.put(self.board, index, self.turn)
@@ -50,7 +50,26 @@ class OthelloGame:
 		else:
 			print('Not a valid position. Please choose one of the red dots!')
 
+	def put_piece_temp(self, x, y):
+		if self.valid_move(x, y):
+			newX = int(x / 75)
+			newY = int(y / 75)
+			index = newY * 8 + newX
+			self.calculate_taken(index)
+			'''
+			color = self.get_color()
+			np.put(self.board, index, self.turn)
+			self.w.create_oval(newX*76, newY*76, (newX+1)*74,
+			                   (newY+1)*74, fill=color, outline=color)
+			'''
+			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
+			self.render_board_for_next_player()
 
+	def valid_move(self, x,y):
+		newX = int(x / 75)
+		newY = int(y / 75)
+		index = newY * 8 + newX
+		return (index in self.possible_moves)
 
 	def render_board_for_next_player(self):
 		self.legalMoves()
@@ -163,9 +182,37 @@ class OthelloGame:
 		else:
 			return False
 
+
+	def cutoff_test(self, depth):
+		return (depth > 4 or self.terminal_test)
 '''
-	def cutoff_test(state, depth)
-		alpha
+	# FOR SOME INSIPIRATION <3
+	
+	def AlphaBeta(self, board, player, depth, alpha, beta, maximizingPlayer):
+		if depth == 0 or self.terminal_test():
+			return EvalBoard(board, player)
+		if maximizingPlayer:
+			v = minEvalBoard
+			for y in range(n):
+				for x in range(n):
+					if self.valid_move(x, y):
+						(boardTemp, totctr) = MakeMove(copy.deepcopy(board), x, y, player)
+						v = max(v, AlphaBeta(boardTemp, player, depth - 1, alpha, beta, False))
+						alpha = max(alpha, v)
+						if beta <= alpha:
+							break # beta cut-off
+			return v
+		else: # minimizingPlayer
+			v = maxEvalBoard
+			for y in range(n):
+				for x in range(n):
+					if self.valid_move(x, y):
+						(boardTemp, totctr) = MakeMove(copy.deepcopy(board), x, y, player)
+						v = min(v, AlphaBeta(boardTemp, player, depth - 1, alpha, beta, True))
+						beta = min(beta, v)
+						if beta <= alpha:
+							break # alpha cut-off
+			return v
 
 
 	def search_pruning(state, game, d=4, cutoff_test = None, eval_f = None):
