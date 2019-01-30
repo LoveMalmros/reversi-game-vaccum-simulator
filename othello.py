@@ -1,5 +1,8 @@
 from tkinter import *
 import numpy as np
+import operator
+import copy
+
 
 BLACK_PIECE = 1
 WHITE_PIECE = 2
@@ -14,7 +17,7 @@ class OthelloGame:
 	w = Canvas(master, width=600, height=600)
 	turn = WHITE_PIECE
 	board = np.zeros((8, 8))
-	possible_moves = set()
+	possible_moves = {}
 	score_var = StringVar()
 	turn_var = StringVar()
 
@@ -33,82 +36,115 @@ class OthelloGame:
 		else:
 			self.turn_var.set('TURN: BLACK')
 
-	def put_piece(self, x,y):
-		if self.valid_move(x,y):
-			newX = int(x / 75)
-			newY = int(y / 75)
-			index = newY * 8 + newX
-			self.calculate_taken(index)
-			color = self.get_color()
+	def callback(self,event):
+		index, x, y = self.get_index(event.x, event.y)
+		if self.valid_move(index, self.possible_moves):
+			self.calculate_taken(index, self.board, self.turn)
 			np.put(self.board, index, self.turn)
-			self.w.create_oval(newX*76,newY*76,(newX+1)*74,(newY+1)*74,fill=color, outline = color)
+			color = self.get_color()
+			self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-			self.render_board_for_next_player()
+			self.possible_moves = {}
+			self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
+			self.render_board()
+			path_and_value = {}
+			if self.turn == BLACK_PIECE:
+				self.alpha_beta(copy.deepcopy(self.board), 0, 0, 0, {}, False, self.turn, path_and_value)
+				idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
+				self.calculate_taken(idx, self.board, self.turn)
+				np.put(self.board, idx, self.turn)
+				color = self.get_color()
+				self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
+				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
+				self.possible_moves = {}
+				self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
+				self.render_board()
+			if(len(self.possible_moves) == 0):
+				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			if(self.terminal_test()):
 				print('Game finished! Neither player can make a valid move.')
-				# TODO popup and show score
+					# TODO popup and show score
 		else:
 			print('Not a valid position. Please choose one of the red dots!')
 
-	def put_piece_temp(self, x, y):
-		if self.valid_move(x, y):
-			newX = int(x / 75)
-			newY = int(y / 75)
-			index = newY * 8 + newX
-			self.calculate_taken(index)
-			'''
-			color = self.get_color()
-			np.put(self.board, index, self.turn)
-			self.w.create_oval(newX*76, newY*76, (newX+1)*74,
-			                   (newY+1)*74, fill=color, outline=color)
-			'''
-			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-			self.render_board_for_next_player()
 
-	def valid_move(self, x,y):
-		newX = int(x / 75)
-		newY = int(y / 75)
-		index = newY * 8 + newX
-		return (index in self.possible_moves)
+	def eval_board(self, board, color):
+		points = 0
+		for val in np.nditer(board):
+			if val == color:
+				points = points + 1
+		return points
 
-	def render_board_for_next_player(self):
-		self.legalMoves()
-		self.render_board()
-		self.show_possible_moves()
-		print(self.possible_moves)
-		if(len(self.possible_moves) == 0):
-			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-		self.changeHeader()
+	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
+		if depth > 6:
+			return self.eval_board(board, WHITE_PIECE)
+		self.legalMoves(possible_moves, board, color)
+		if max_player:
+			v = -1
+			for move_index, value in possible_moves.items():
+				np.put(board, move_index, color)
+				self.calculate_taken(int(move_index), board, color)
+				v = max(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, False, self.oppositeColor(color), path_and_value))
+				if  depth == 0:
+					if move_index in path_and_value:
+						path_and_value[move_index] = path_and_value[move_index] + v
+					else:
+						path_and_value[move_index] = v
+				if v >= beta:
+					return v
+				alpha = max(alpha, v)
+			return v
+		else:
+			v = 1000
+			for move_index, value in possible_moves.items():
+				np.put(board, move_index, color)
+				self.calculate_taken(int(move_index), board, color)
+				v = min(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, True, self.oppositeColor(color), path_and_value))
+				if  depth == 0:
+					if move_index in path_and_value:
+						path_and_value[move_index] = path_and_value[move_index] + v
+					else:
+						path_and_value[move_index] = v
+				if v <= alpha:
+					return v
+				beta = min(beta, v)
+			return v
 
+	def get_index(self, x, y):
+		new_x = int(x / 75)
+		new_y = int(y / 75)
+		index = new_y * 8 + new_x
+		return index, new_x, new_y
+
+	def valid_move(self, index, possible_moves):
+		return (str(index) in possible_moves)
 
 	def show_possible_moves(self):
 		for idx in self.possible_moves:
-			y = int(idx/8)
-			x = idx - y*8
+			y = int(int(idx)/8)
+			x = int(idx) - y*8
 			self.w.create_oval((x*75)+35,(y*75)+35,((x+1)*75)-35,((y+1)*75)-35,fill='red', outline = 'red')
 
-	def calculate_taken(self, index):
+	def calculate_taken(self, index, board, turn):
 		for val in AROUND_ARRAY:
-			self.adjacent_opponent(index, val, [], self.turn, TAKE_OPPONENT)
-			self.adjacent_opponent(index, -val, [], self.turn, TAKE_OPPONENT)
+			self.adjacent_opponent(index, val, [], turn, TAKE_OPPONENT, {}, board)
+			self.adjacent_opponent(index, -val, [], turn, TAKE_OPPONENT, {}, board)
 
 	def get_color(self):
 		return 'white' if self.turn == WHITE_PIECE else 'black'
 
-	def callback(self,event):
-		self.put_piece(event.x, event.y)
+
 
 	def checkIfTaken(self, i):
 		return np.take(self.board,i) == WHITE_PIECE or np.take(self.board,i) == BLACK_PIECE
 
-	def legalMoves(self):
-		self.possible_moves = set()
+	def legalMoves(self, possible_moves, board, turn):
 		#Filter self.board for turns pieces
-		for i,val in enumerate(np.nditer(self.board)):
-			if val == self.turn:
-				for val in AROUND_ARRAY:
-					self.adjacent_opponent(i, val, [], self.turn, CALCULATE_POSSIBLE_MOVES)
-					self.adjacent_opponent(i, -val, [], self.turn, CALCULATE_POSSIBLE_MOVES)
+		for i,val in enumerate(np.nditer(board)):
+			if val == turn:
+				for dir in AROUND_ARRAY:
+					self.adjacent_opponent(i, dir, [], turn, CALCULATE_POSSIBLE_MOVES, possible_moves, board)
+					self.adjacent_opponent(i, -dir, [], turn, CALCULATE_POSSIBLE_MOVES, possible_moves, board)
 
 	def oppositeColor(self, color):
 		if color == WHITE_PIECE:
@@ -132,21 +168,27 @@ class OthelloGame:
 		newIndex = index + direction
 		return newIndex >= 0 and newIndex <8*8
 
-	def adjacent_opponent(self, index, direction, current_adjacents, color, type):
+	def adjacent_opponent(self, index, direction, current_adjacents, color, type, possible_moves, board):
 		new_adjacents = current_adjacents
-		if self.check_if_inside(index, direction) and np.take(self.board, index+direction) == self.oppositeColor(color):
-			new_adjacents.append(index+direction)
-			self.adjacent_opponent(index+direction, direction, new_adjacents, color, type)
+		new_index = index + direction
+		if self.check_if_inside(index, direction) and np.take(board, index+direction) == self.oppositeColor(color):
+			new_adjacents.append(new_index)
+			self.adjacent_opponent(new_index, direction, new_adjacents, color, type, possible_moves, board)
 		elif self.check_if_inside(index, direction) and len(new_adjacents)>0:
-			if type == CALCULATE_POSSIBLE_MOVES and np.take(self.board, index+direction) == EMPTY_PIECE:
-				if index+direction == 8:
-					print(index)
-				self.possible_moves.add(index+direction)
-			elif type == TAKE_OPPONENT and np.take(self.board, index+direction) == color:
+			if type == CALCULATE_POSSIBLE_MOVES and np.take(board, new_index) == EMPTY_PIECE:
+				self.add_index_to_moves(new_index, possible_moves, len(current_adjacents))
+			elif type == TAKE_OPPONENT and np.take(board, new_index) == color:
 				for idx in current_adjacents:
-					np.put(self.board, idx, color)
+					np.put(board, idx, color)
+
+	def add_index_to_moves(self, index, pos_moves, number_of_moves):
+		if str(index) in pos_moves:
+			pos_moves[str(index)] = int(pos_moves[str(index)]) + number_of_moves
+		else:
+			pos_moves[str(index)] = number_of_moves
 
 	def render_board(self):
+		self.changeHeader()
 		for i,val in enumerate(np.nditer(self.board)):
 			row = int(i/8)
 			col = i - row*8
@@ -156,6 +198,7 @@ class OthelloGame:
 				self.w.create_oval(col*76,row*76,(col+1)*74,(row+1)*74,fill="black", outline = 'black')
 			else:
 				self.w.create_rectangle(col*75, row*75, (col+1)*75, (row+1)*75, fill="green", outline = 'black')
+		self.show_possible_moves()
 
 
 	def setupBoard(self):
@@ -168,7 +211,8 @@ class OthelloGame:
 		np.put(self.board, 28, BLACK_PIECE)
 		np.put(self.board, 35, BLACK_PIECE)
 		np.put(self.board, 36, WHITE_PIECE)
-		self.render_board_for_next_player()
+		self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
+		self.render_board()
 		Label(self.master, textvariable=self.turn_var).pack()
 		Label(self.master, textvariable=self.score_var).pack()
 		self.w.pack()
@@ -176,7 +220,7 @@ class OthelloGame:
 
 	def terminal_test(self): # when both players consecutively can't make any valid moves -> game finished!
 		if(len(self.possible_moves) == 0):
-			self.legalMoves() # check next player's possible moves
+			self.legalMoves(self.possible_moves, self.board, self.turn) # check next player's possible moves
 			if(len(self.possible_moves) == 0):
 				return True
 		else:
@@ -184,10 +228,10 @@ class OthelloGame:
 
 
 	def cutoff_test(self, depth):
-		return (depth > 4 or self.terminal_test)
+		return (depth > 4 or self.terminal_test(board))
 '''
 	# FOR SOME INSIPIRATION <3
-	
+
 	def AlphaBeta(self, board, player, depth, alpha, beta, maximizingPlayer):
 		if depth == 0 or self.terminal_test():
 			return EvalBoard(board, player)
