@@ -47,18 +47,19 @@ class OthelloGame:
 			self.possible_moves = {}
 			self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
 			self.render_board()
-			path_and_value = {}
 			if self.turn == BLACK_PIECE:
+				path_and_value = {}
 				self.alpha_beta(copy.deepcopy(self.board), 0, 0, 0, {}, False, self.turn, path_and_value)
-				idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
-				self.calculate_taken(idx, self.board, self.turn)
-				np.put(self.board, idx, self.turn)
-				color = self.get_color()
-				self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
-				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-				self.possible_moves = {}
-				self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
-				self.render_board()
+				if len(path_and_value.items()) > 0:
+					idx = int(min(path_and_value.items(), key=operator.itemgetter(1))[0])
+					self.calculate_taken(idx, self.board, self.turn)
+					np.put(self.board, idx, self.turn)
+					color = self.get_color()
+					self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
+					self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
+					self.possible_moves = {}
+					self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
+					self.render_board()
 			if(len(self.possible_moves) == 0):
 				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			if(self.terminal_test()):
@@ -66,6 +67,7 @@ class OthelloGame:
 					# TODO popup and show score
 		else:
 			print('Not a valid position. Please choose one of the red dots!')
+			print(score_var)
 
 
 	def eval_board(self, board, color):
