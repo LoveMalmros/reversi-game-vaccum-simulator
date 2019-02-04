@@ -59,12 +59,7 @@ class OthelloGame:
 				self.possible_moves = {}
 				self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
 				self.render_board()
-			if(len(self.possible_moves) == 0):
-				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-			if(self.terminal_test()):
-				print('Game finished! Neither player can make a valid move.')
-					# TODO popup and show score
-		else:
+		else:	
 			print('Not a valid position. Please choose one of the red dots!')
 
 
@@ -76,7 +71,7 @@ class OthelloGame:
 		return points
 
 	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
-		if depth > 6:
+		if depth > 3:
 			return self.eval_board(board, WHITE_PIECE)
 		self.legalMoves(possible_moves, board, color)
 		if max_player:
@@ -188,6 +183,12 @@ class OthelloGame:
 			pos_moves[str(index)] = number_of_moves
 
 	def render_board(self):
+		if(len(self.possible_moves) == 0):
+			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
+			print('There was no valid move. Switched to other player\'s turn.')
+			if(self.terminal_test()):
+				print('Game finished! Neither player can make a valid move.')
+				print(self.score_var.get())
 		self.changeHeader()
 		for i,val in enumerate(np.nditer(self.board)):
 			row = int(i/8)
@@ -227,9 +228,9 @@ class OthelloGame:
 			return False
 
 
+'''
 	def cutoff_test(self, depth):
 		return (depth > 4 or self.terminal_test(board))
-'''
 	# FOR SOME INSIPIRATION <3
 
 	def AlphaBeta(self, board, player, depth, alpha, beta, maximizingPlayer):
