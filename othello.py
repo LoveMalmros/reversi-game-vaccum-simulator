@@ -50,7 +50,6 @@ class OthelloGame:
 			if self.turn == BLACK_PIECE:
 				path_and_value = {}
 				self.alpha_beta(copy.deepcopy(self.board), 0, 0, 0, {}, False, self.turn, path_and_value)
-<<<<<<< HEAD
 				idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
 				self.calculate_taken(idx, self.board, self.turn)
 				np.put(self.board, idx, self.turn)
@@ -61,26 +60,7 @@ class OthelloGame:
 				self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
 				self.render_board()
 		else:	
-=======
-				if len(path_and_value.items()) > 0:
-					idx = int(min(path_and_value.items(), key=operator.itemgetter(1))[0])
-					self.calculate_taken(idx, self.board, self.turn)
-					np.put(self.board, idx, self.turn)
-					color = self.get_color()
-					self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
-					self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-					self.possible_moves = {}
-					self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
-					self.render_board()
-			if(len(self.possible_moves) == 0):
-				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-			if(self.terminal_test()):
-				print('Game finished! Neither player can make a valid move.')
-					# TODO popup and show score
-		else:
->>>>>>> ebde323e12ecd537e94091b596f6ba598ad903ff
 			print('Not a valid position. Please choose one of the red dots!')
-			print(score_var)
 
 
 	def eval_board(self, board, color):
@@ -203,13 +183,14 @@ class OthelloGame:
 			pos_moves[str(index)] = number_of_moves
 
 	def render_board(self):
+		self.changeHeader()
 		if(len(self.possible_moves) == 0):
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			print('There was no valid move. Switched to other player\'s turn.')
+			self.changeHeader()
 			if(self.terminal_test()):
 				print('Game finished! Neither player can make a valid move.')
 				print(self.score_var.get())
-		self.changeHeader()
 		for i,val in enumerate(np.nditer(self.board)):
 			row = int(i/8)
 			col = i - row*8
