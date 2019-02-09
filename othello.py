@@ -63,22 +63,26 @@ class OthelloGame:
 			if(len(self.possible_moves) == 0):
 				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			if(self.terminal_test()):
-				print('Game finished! Neither player can make a valid move.')
+				print('Game finished! xNeither player can make a valid move.')
 					# TODO popup and show score
 		else:
 			print('Not a valid position. Please choose one of the red dots!')
-			print(score_var)
 
 
 	def eval_board(self, board, color):
 		points = 0
-		for val in np.nditer(board):
+		for val,i in enumerate(np.nditer(board)):
 			if val == color:
-				points = points + 1
+				if i == 0 or i == 7 or i == 63 or i == 55:
+					points = points + 4
+				elif i < 8 or i > 55:
+					points = points + 2
+				else:
+					points = points + 1
 		return points
 
 	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
-		if depth > 6:
+		if depth > 7:
 			return self.eval_board(board, WHITE_PIECE)
 		self.legalMoves(possible_moves, board, color)
 		if max_player:
