@@ -7,10 +7,12 @@ import copy
 BLACK_PIECE = 1
 WHITE_PIECE = 2
 EMPTY_PIECE = 0
-POSSIBLE_PIECE = 3
 AROUND_ARRAY = [1, 7, 8, 9]
 TAKE_OPPONENT = 'take_opponent'
 CALCULATE_POSSIBLE_MOVES = 'calculate_possible_moves'
+PLAYER_VS_PLAYER = 'player_vs_player'
+PLAYER_VS_AI = 'player_vs_ai'
+
 
 class OthelloGame:
 	master = Tk()
@@ -20,7 +22,56 @@ class OthelloGame:
 	possible_moves = {}
 	score_var = StringVar()
 	turn_var = StringVar()
+	TYPE_OF_GAME = ''
+	PLAYING_AS = 0
+	DEPTH = 1
 
+	def menu(self):
+		self.type_of_game();
+		if(self.TYPE_OF_GAME == PLAYER_VS_AI):
+			self.player_color()
+			self.depth_of_max_min()
+
+
+	def depth_of_max_min(self):
+		print('What depth should the ais tree search alogrithm have?(1-7)')
+		depth = input()
+		if(int(depth)>0 and int(depth) < 8):
+			self.DEPTH = int(depth)
+		else:
+			print('Not a valid depth')
+			self.depth_of_max_min()
+
+	def player_color(self):
+		print('What color would you like to play as?')
+		print('1. White')
+		print('2. Black')
+		color = input()
+		if(color == '1'):
+			self.PLAYING_AS = WHITE_PIECE
+		elif(color == '2'):
+			self.PLAYING_AS = BLACK_PIECE
+		else:
+			print('Not a valid choice')
+			self.player_color()
+
+	def type_of_game(self):
+		print('Play against ai or player?')
+		print('1. Player')
+		print('2. Ai')
+		type_of_game = input()
+		if(type_of_game == '1'):
+			self.TYPE_OF_GAME = PLAYER_VS_PLAYER
+		elif(type_of_game == '2'):
+			self.TYPE_OF_GAME = PLAYER_VS_AI
+		else:
+			print('Not a valid choice')
+			self.type_of_game()
+
+	def my_turn_vs_ai(self):
+		if(self.TYPE_OF_GAME == PLAYER_VS_AI and self.turn == self.PLAYING_AS):
+			return True
+		return False
 
 	def changeHeader(self):
 		white = 0
@@ -36,63 +87,53 @@ class OthelloGame:
 		else:
 			self.turn_var.set('TURN: BLACK')
 
-	def callback(self,event):
-		index, x, y = self.get_index(event.x, event.y)
+
+	def put_piece(self, index):
 		if self.valid_move(index, self.possible_moves):
 			self.calculate_taken(index, self.board, self.turn)
 			np.put(self.board, index, self.turn)
 			color = self.get_color()
-			self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			self.possible_moves = {}
 			self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
 			self.render_board()
-			if self.turn == BLACK_PIECE:
-				path_and_value = {}
-				self.alpha_beta(copy.deepcopy(self.board), 0, 0, 0, {}, False, self.turn, path_and_value)
-				idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
-				self.calculate_taken(idx, self.board, self.turn)
-				np.put(self.board, idx, self.turn)
-				color = self.get_color()
-				self.w.create_oval(x*76,y*76,(x+1)*74,(y+1)*74,fill=color, outline = color)
-				self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
-				self.possible_moves = {}
-				self.legalMoves(self.possible_moves, self.board, self.turn) #GET POSSBLE MOVES
-				self.render_board()
+
 		else:
 			print('Not a valid position. Please choose one of the red dots!')
 
+	def callback(self,event):
+		if(self.my_turn_vs_ai()):
+			index, x, y = self.get_index(event.x, event.y)
+			self.put_piece(index)
+		else:
+			print('AIs turn!')
 
 	def eval_board(self, board, color):
 		points = 0
-		for val,i in enumerate(np.nditer(board)):
+		print(board)
+		for i,val in enumerate(np.nditer(board)):
 			if val == color:
-				if i == 0 or i == 7 or i == 63 or i == 55:
-					points = points + 4
-				elif i < 8 or i > 55:
-					points = points + 2
-				else:
-					points = points + 1
+				points = points + 1
+		print(points)
 		return points
 
 	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
-		if depth > 3:
-			return self.eval_board(board, WHITE_PIECE)
 		self.legalMoves(possible_moves, board, color)
+		if depth > self.DEPTH:
+			return self.eval_board(board, self.oppositeColor(self.PLAYING_AS))
 		if max_player:
-			v = -1
+			v = -1000
 			for move_index, value in possible_moves.items():
 				np.put(board, move_index, color)
 				self.calculate_taken(int(move_index), board, color)
 				v = max(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, False, self.oppositeColor(color), path_and_value))
-				if  depth == 0:
-					if move_index in path_and_value:
-						path_and_value[move_index] = path_and_value[move_index] + v
-					else:
-						path_and_value[move_index] = v
-				if v >= beta:
-					return v
 				alpha = max(alpha, v)
+				if move_index in path_and_value and path_and_value[move_index] < alpha:
+					path_and_value[move_index] = alpha
+				else:
+					path_and_value[move_index] = alpha
+				if beta <= alpha:
+					break
 			return v
 		else:
 			v = 1000
@@ -100,14 +141,11 @@ class OthelloGame:
 				np.put(board, move_index, color)
 				self.calculate_taken(int(move_index), board, color)
 				v = min(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, True, self.oppositeColor(color), path_and_value))
-				if  depth == 0:
-					if move_index in path_and_value:
-						path_and_value[move_index] = path_and_value[move_index] + v
-					else:
-						path_and_value[move_index] = v
-				if v <= alpha:
-					return v
 				beta = min(beta, v)
+				#if  path_and_value[move_index] and path_and_value[move_index] > beta:
+				#	path_and_value[move_index] = beta
+				if beta <= alpha:
+					break
 			return v
 
 	def get_index(self, x, y):
@@ -193,7 +231,7 @@ class OthelloGame:
 			self.turn = WHITE_PIECE if self.turn == BLACK_PIECE else BLACK_PIECE
 			print('There was no valid move. Switched to other player\'s turn.')
 			self.changeHeader()
-			if(self.terminal_test()):
+			if(self.terminal_test(self.possible_moves, self.board, self.turn)):
 				print('Game finished! Neither player can make a valid move.')
 				print(self.score_var.get())
 		for i,val in enumerate(np.nditer(self.board)):
@@ -206,9 +244,16 @@ class OthelloGame:
 			else:
 				self.w.create_rectangle(col*75, row*75, (col+1)*75, (row+1)*75, fill="green", outline = 'black')
 		self.show_possible_moves()
+		if(self.TYPE_OF_GAME == PLAYER_VS_AI and self.turn != self.PLAYING_AS):
+			path_and_value = {}
+			self.alpha_beta(copy.deepcopy(self.board), 0, -1000, 1000, {}, True, self.turn, path_and_value)
+			print(path_and_value)
+			idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
+			self.put_piece(idx)
 
 
-	def setupBoard(self):
+	def start_game(self):
+		self.menu()
 		self.w.create_rectangle(0, 0, 600, 600, fill="green", outline = 'green')
 		self.w.bind("<Button-1>", self.callback)
 		for i in range(0,8):
@@ -225,57 +270,14 @@ class OthelloGame:
 		self.w.pack()
 		self.master.mainloop()
 
-	def terminal_test(self): # when both players consecutively can't make any valid moves -> game finished!
-		if(len(self.possible_moves) == 0):
-			self.legalMoves(self.possible_moves, self.board, self.turn) # check next player's possible moves
-			if(len(self.possible_moves) == 0):
+	def terminal_test(self, possible_moves, board, turn): # when both players consecutively can't make any valid moves -> game finished!
+		if(len(possible_moves) == 0):
+			self.legalMoves(possible_moves, board, turn) # check next player's possible moves
+			if(len(possible_moves) == 0):
 				return True
 		else:
 			return False
 
-
-'''
-	def cutoff_test(self, depth):
-		return (depth > 4 or self.terminal_test(board))
-	# FOR SOME INSIPIRATION <3
-
-	def AlphaBeta(self, board, player, depth, alpha, beta, maximizingPlayer):
-		if depth == 0 or self.terminal_test():
-			return EvalBoard(board, player)
-		if maximizingPlayer:
-			v = minEvalBoard
-			for y in range(n):
-				for x in range(n):
-					if self.valid_move(x, y):
-						(boardTemp, totctr) = MakeMove(copy.deepcopy(board), x, y, player)
-						v = max(v, AlphaBeta(boardTemp, player, depth - 1, alpha, beta, False))
-						alpha = max(alpha, v)
-						if beta <= alpha:
-							break # beta cut-off
-			return v
-		else: # minimizingPlayer
-			v = maxEvalBoard
-			for y in range(n):
-				for x in range(n):
-					if self.valid_move(x, y):
-						(boardTemp, totctr) = MakeMove(copy.deepcopy(board), x, y, player)
-						v = min(v, AlphaBeta(boardTemp, player, depth - 1, alpha, beta, True))
-						beta = min(beta, v)
-						if beta <= alpha:
-							break # alpha cut-off
-			return v
-
-
-	def search_pruning(state, game, d=4, cutoff_test = None, eval_f = None):
-		def max_value(state, alpha, beta, depth):
-			if cutoff_test(state, depth):
-				return eval_f(state)
-			v = float('inf')
-			for idx in self.possible_moves:
-				v = max(v, min_value())
-'''
-
-
 new_game = OthelloGame()
 
-new_game.setupBoard()
+new_game.start_game()
