@@ -110,11 +110,9 @@ class OthelloGame:
 
 	def eval_board(self, board, color):
 		points = 0
-		print(board)
 		for i,val in enumerate(np.nditer(board)):
 			if val == color:
 				points = points + 1
-		print(points)
 		return points
 
 	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
@@ -124,13 +122,14 @@ class OthelloGame:
 		if max_player:
 			v = -1000
 			for move_index, value in possible_moves.items():
-				np.put(board, move_index, color)
-				self.calculate_taken(int(move_index), board, color)
-				v = max(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, False, self.oppositeColor(color), path_and_value))
+				temp_board = copy.deepcopy(board)
+				np.put(temp_board, move_index, color)
+				self.calculate_taken(int(move_index), temp_board, color)
+				v = max(v, self.alpha_beta(temp_board, depth + 1, alpha, beta, {}, False, self.oppositeColor(color), path_and_value))
 				alpha = max(alpha, v)
-				if move_index in path_and_value and path_and_value[move_index] < alpha:
+				if move_index in path_and_value and path_and_value[move_index] < alpha and depth == 0:
 					path_and_value[move_index] = alpha
-				else:
+				elif depth == 0:
 					path_and_value[move_index] = alpha
 				if beta <= alpha:
 					break
@@ -138,9 +137,10 @@ class OthelloGame:
 		else:
 			v = 1000
 			for move_index, value in possible_moves.items():
-				np.put(board, move_index, color)
-				self.calculate_taken(int(move_index), board, color)
-				v = min(v, self.alpha_beta(copy.deepcopy(board), depth + 1, alpha, beta, {}, True, self.oppositeColor(color), path_and_value))
+				temp_board = copy.deepcopy(board)
+				np.put(temp_board, move_index, color)
+				self.calculate_taken(int(move_index), temp_board, color)
+				v = min(v, self.alpha_beta(temp_board, depth + 1, alpha, beta, {}, True, self.oppositeColor(color), path_and_value))
 				beta = min(beta, v)
 				#if  path_and_value[move_index] and path_and_value[move_index] > beta:
 				#	path_and_value[move_index] = beta
@@ -247,7 +247,6 @@ class OthelloGame:
 		if(self.TYPE_OF_GAME == PLAYER_VS_AI and self.turn != self.PLAYING_AS):
 			path_and_value = {}
 			self.alpha_beta(copy.deepcopy(self.board), 0, -1000, 1000, {}, True, self.turn, path_and_value)
-			print(path_and_value)
 			idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
 			self.put_piece(idx)
 
