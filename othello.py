@@ -252,6 +252,7 @@ class OthelloGame:
 			if(self.terminal_test(self.possible_moves, self.board, self.turn)):
 				print('Game finished! Neither player can make a valid move.')
 				print(self.score_var.get())
+				self.master.quit()
 		for i,val in enumerate(np.nditer(self.board)):
 			row = int(i/8)
 			col = i - row*8
