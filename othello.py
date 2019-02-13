@@ -2,6 +2,8 @@ from tkinter import *
 import numpy as np
 import operator
 import copy
+import time
+
 
 
 BLACK_PIECE = 1
@@ -25,13 +27,24 @@ class OthelloGame:
 	TYPE_OF_GAME = ''
 	PLAYING_AS = 0
 	DEPTH = 1
+	TIME=5
 
 	def menu(self):
 		self.type_of_game();
 		if(self.TYPE_OF_GAME == PLAYER_VS_AI):
 			self.player_color()
 			self.depth_of_max_min()
+			self.time()
 
+
+	def time(self):
+		print('How much time should the AI have on each move?(3-20)')
+		time = input()
+		if(int(time)>=3 and int(time) < 20):
+			self.TIME = int(time)
+		else:
+			print('Not a valid time')
+			self.time()
 
 	def depth_of_max_min(self):
 		print('What depth should the ais tree search alogrithm have?(1-7)')
@@ -114,7 +127,7 @@ class OthelloGame:
 			if val == color:
 				if i == 0 or i == 7 or i == 63 or i == 55:
 					points = points + 4
-				elif i < 8 or i > 55:
+				elif i < 8 or i > 55 or i % 8 == 0 or i % 8 == 7:
 					points = points + 2
 				else:
 					points = points + 1
@@ -250,11 +263,18 @@ class OthelloGame:
 				self.w.create_rectangle(col*75, row*75, (col+1)*75, (row+1)*75, fill="green", outline = 'black')
 		self.show_possible_moves()
 		if(self.TYPE_OF_GAME == PLAYER_VS_AI and self.turn != self.PLAYING_AS):
+			start_time = time.time()
 			path_and_value = {}
 			self.alpha_beta(copy.deepcopy(self.board), 0, -1000, 1000, {}, True, self.turn, path_and_value)
 			idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
-			self.put_piece(idx)
-			print(path_and_value)
+			end_time = time.time()
+			total_time = (end_time - start_time) 
+			print(total_time)
+			if(self.TIME > total_time):
+				self.put_piece(idx)
+			else:
+				print('Computer took to long, game ended')
+				self.master.quit()
 
 
 	def start_game(self):
