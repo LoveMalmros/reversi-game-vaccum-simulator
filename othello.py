@@ -112,12 +112,17 @@ class OthelloGame:
 		points = 0
 		for i,val in enumerate(np.nditer(board)):
 			if val == color:
-				points = points + 1
+				if i == 0 or i == 7 or i == 63 or i == 55:
+					points = points + 4
+				elif i < 8 or i > 55:
+					points = points + 2
+				else:
+					points = points + 1
 		return points
 
 	def alpha_beta(self, board, depth, alpha, beta, possible_moves, max_player, color, path_and_value):
 		self.legalMoves(possible_moves, board, color)
-		if depth > self.DEPTH:
+		if depth > self.DEPTH or self.terminal_test(possible_moves, board, color):
 			return self.eval_board(board, self.oppositeColor(self.PLAYING_AS))
 		if max_player:
 			v = -1000
@@ -249,6 +254,7 @@ class OthelloGame:
 			self.alpha_beta(copy.deepcopy(self.board), 0, -1000, 1000, {}, True, self.turn, path_and_value)
 			idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
 			self.put_piece(idx)
+			print(path_and_value)
 
 
 	def start_game(self):
