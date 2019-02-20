@@ -270,7 +270,6 @@ class OthelloGame:
 			idx = int(max(path_and_value.items(), key=operator.itemgetter(1))[0])
 			end_time = time.time()
 			total_time = (end_time - start_time) 
-			print(total_time)
 			if(self.TIME > total_time):
 				self.put_piece(idx)
 			else:
