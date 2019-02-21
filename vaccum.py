@@ -18,7 +18,7 @@ class OthelloGame:
     m = 4
     n = 4
     board = np.zeros((m, n))
-    w = Canvas(master, width=600, height=600)
+    w = Canvas(master, width=900, height=670)
     robot = robot.Robot(4, 4)
     robot.init_robot()
     O = []
@@ -148,7 +148,32 @@ class OthelloGame:
                                         (j+1)*150, fill="white", outline='black')
         self.set_start_index()
         self.w.pack()
+        b = Button(self.master, text="Show Transitions", command=self.return_callback)
+        b.pack()
+        b.place(bordermode=OUTSIDE, x=600, y=0)
+        b.place(bordermode=OUTSIDE, height=300, width=300)
+        b2 = Button(self.master, text="Show Sensors", command=self.return_callback)
+        b2.pack()
+        b2.place(bordermode=OUTSIDE, x=600, y=300)
+        b2.place(bordermode=OUTSIDE, height=300, width=300)
+        b3 = Button(self.master, text="Init filter", command=self.return_callback)
+        b3.pack()
+        b3.place(bordermode=OUTSIDE, x=100, y=625)
+        b3.place(bordermode=OUTSIDE, height=30, width=70)
+        b4 = Button(self.master, text="One step", command=self.return_callback)
+        b4.pack()
+        b4.place(bordermode=OUTSIDE, x=180, y=625)
+        b4.place(bordermode=OUTSIDE, height=30, width=70)
+        b5 = Button(self.master, text="Go", command=self.return_callback)
+        b5.pack()
+        b5.place(bordermode=OUTSIDE, x=260, y=625)
+        b5.place(bordermode=OUTSIDE, height=30, width=70)
+        b6 = Button(self.master, text="Stop", command=self.return_callback)
+        b6.pack()
+        b6.place(bordermode=OUTSIDE, x=340, y=625)
+        b6.place(bordermode=OUTSIDE, height=30, width=70)
         self.master.mainloop()
+
 
 
 new_game = OthelloGame()
