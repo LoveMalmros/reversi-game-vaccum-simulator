@@ -198,9 +198,6 @@ class Robot:
     # returns vector with positions LS [1]
     # returns vector with positions LS2 [2]
     def sensor(self):
-        posx = self.return_pos()[0]
-        posy = self.return_pos()[1]
-
         # Dictionary with sensor values arranged by their weights
         # converted to a list; [0] is the location, [1] is Ls value, [2] is Ls value etc...
         dict = self.create_dict()[0]
