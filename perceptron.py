@@ -3,47 +3,7 @@ from sklearn import preprocessing, linear_model
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-'''
-fr_x = np.array([36961,
-                 43621,
-                 15694,
-                 36231,
-                 29945,
-                 40588,
-                 75255,
-                 37709,
-                 30899,
-                 25486,
-                 37497,
-                 40398,
-                 74105,
-                 76725,
-                 18317])
-fr_y = np.array([2503, 2992, 1042, 2487, 2014, 2805, 5062,
-                 2643, 2126, 1784, 2641, 2766, 5047, 5312, 1215])
 
-en_x = np.array([35680,
-                 42514,
-                 15162,
-                 35298,
-                 29800,
-                 40255,
-                 74532,
-                 37464,
-                 31030,
-                 24843,
-                 36172,
-                 39552,
-                 72545,
-                 75352,
-                 18031])
-en_y = np.array([2217, 2761, 990, 2274, 1865, 2606,
-                 4805, 2396, 1993, 1627, 2375, 2560, 4597, 4871, 1119])
-plt.figure(1)
-plt.plot(fr_x, fr_y, 'bs', en_x, en_y, 'g^')
-plt.xlabel('Number of characters')
-plt.ylabel('Number of A:s')
-'''
 # divides English and French to two different classes: 0 & 1.
 y_train = np.array(
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
