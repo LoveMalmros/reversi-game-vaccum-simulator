@@ -40,6 +40,17 @@ y_test_predicted = classifier.predict(X_train)
 # fetch weights
 # w0 = y_test_predicted[0::2]
 # w1 = y_test_predicted[1::2]
+def parse_sparse_format():
+    format_string = '0 '
+    for x in X_train[:15]:
+        format_string += '1:' + str(x[0]) + ' '
+        format_string += '2:' + str(x[1]) + ' '
+    format_string += '\n1 '
+    for x in X_train[15:]:
+        format_string += '1:' + str(x[0]) + ' '
+        format_string += '2:' + str(x[1]) + ' '
+    return format_string
+print(parse_sparse_format())
 
 def compute_error_for_line_given_points(b, m, points):
     totalError = 0
@@ -49,27 +60,41 @@ def compute_error_for_line_given_points(b, m, points):
         totalError += (y - (m * x + b)) ** 2
     return totalError / float(len(points))
 
-def step_gradient(b_current, m_current, points, learningRate):
+def stoch_step_gradient(b_current, m_current, points, learningRate):
     b_gradient = 0
     m_gradient = 0
-    N = float(len(points))
-    t = True
     for i in range(0, len(points)):
         x = points[i, 0]
         y = points[i, 1]
-        b_gradient += -(2/N) * (y - ((m_current * x) + b_current))
-        m_gradient += -(2/N) * x * (y - ((m_current * x) + b_current))
-    new_b = b_current - (learningRate * b_gradient)
-    new_m = m_current - (learningRate * m_gradient)
+        b_gradient += (y - ((m_current * x) + b_current))
+        m_gradient += x * (y - ((m_current * x) + b_current))
+    new_b = b_current + (learningRate * b_gradient)
+    new_m = m_current + (learningRate * m_gradient)
     return [new_b, new_m]
 
-def gradient_descent_runner(points, starting_b, starting_m, learning_rate, num_iterations):
+def batch_step_gradient(b_current, m_current, points, learningRate, i,  q):
+    divider = learningRate / q
+    batch_b = 0
+    batch_m = 0
+    for j in range(i, i+q):
+        x = points[j, 0]
+        y = points[j, 1]
+        batch_b = (y - ((m_current * x) + b_current))
+        batch_m = x * (y - ((m_current * x) + b_current))
+    new_b = b_current + divider*(learningRate * batch_b)
+    new_m = m_current + divider*(learningRate * batch_m)
+    return [new_b, new_m]
+
+def gradient_descent_runner(points, starting_b, starting_m, learning_rate, num_iterations, stoch):
     b = starting_b
     m = starting_m
     for i in range(num_iterations):
-        b, m = step_gradient(b, m, points, learning_rate)
+        if(stoch):
+            b, m = stoch_step_gradient(b, m, points, learning_rate)
+        else:
+            j = i % 5
+            b, m = batch_step_gradient(b, m, points, learning_rate, j*3, 3)
     return [b, m]
-
 
 # stochastic gradient descent create weights w0 and w1: y_pred = w1 * x + w0
 def stochastic_gradient_descent(x, y, error, alpha):
@@ -152,9 +177,12 @@ norm_en_x = norm_X[:15, 0]
 norm_en_y = norm_X[:15, 1]
 norm_fr_x = norm_X[15:, 0]
 norm_fr_y = norm_X[15:, 1]
-[b_en, m_en] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000)
-[b_fr, m_fr] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000)
-
+[b_en, m_en] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000, True)
+[b_fr, m_fr] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000, True)
+[b_en2, m_en2] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000, False)
+[b_fr2, m_fr2] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000, False)
+print(b_en)
+print(m_en)
 """
 fig = plt.figure()
 ax = fig.gca(projection='3d')
