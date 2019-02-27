@@ -2,6 +2,9 @@ import numpy as np
 from sklearn import preprocessing, linear_model
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
 # divides English and French to two different classes: 0 & 1.
@@ -24,6 +27,7 @@ X_train = np.array(
 min_max_scaler = preprocessing.MinMaxScaler()
 norm_X = min_max_scaler.fit_transform(X_train)
 
+
 # Train
 classifier = linear_model.LinearRegression()
 model = classifier.fit(X_train, y_train)
@@ -37,21 +41,57 @@ y_test_predicted = classifier.predict(X_train)
 # w0 = y_test_predicted[0::2]
 # w1 = y_test_predicted[1::2]
 
+def compute_error_for_line_given_points(b, m, points):
+    totalError = 0
+    for i in range(0, len(points)):
+        x = points[i, 0]
+        y = points[i, 1]
+        totalError += (y - (m * x + b)) ** 2
+    return totalError / float(len(points))
+
+def step_gradient(b_current, m_current, points, learningRate):
+    b_gradient = 0
+    m_gradient = 0
+    N = float(len(points))
+    t = True
+    for i in range(0, len(points)):
+        x = points[i, 0]
+        y = points[i, 1]
+        b_gradient += -(2/N) * (y - ((m_current * x) + b_current))
+        m_gradient += -(2/N) * x * (y - ((m_current * x) + b_current))
+    new_b = b_current - (learningRate * b_gradient)
+    new_m = m_current - (learningRate * m_gradient)
+    return [new_b, new_m]
+
+def gradient_descent_runner(points, starting_b, starting_m, learning_rate, num_iterations):
+    b = starting_b
+    m = starting_m
+    for i in range(num_iterations):
+        b, m = step_gradient(b, m, points, learning_rate)
+    return [b, m]
+
 
 # stochastic gradient descent create weights w0 and w1: y_pred = w1 * x + w0
 def stochastic_gradient_descent(x, y, error, alpha):
     # init weights
     w0 = 0.001
     w1 = 0.001
-
+    e = 0.001
+    w0_list = []
+    w1_list = []
+    e_list = []
     new_weights = stochastic_sum(x[0], y[0], w0, w1, alpha)
 
     print('Initialized new weights: ' + str(new_weights))
     counter = 0
 
-    for i in range(1000):
+    for i in range(100):
         w0 += new_weights[0]
         w1 += new_weights[1]
+        e += new_weights[2]
+        w0_list.append(new_weights[0])
+        w1_list.append(new_weights[1])
+        e_list.append(new_weights[2])
         #print('new w0 and w1: ' + str(w0) + '  ' + str(w1))
 
         new_weights = stochastic_sum(x[counter], y[counter], w0, w1, alpha)
@@ -61,7 +101,7 @@ def stochastic_gradient_descent(x, y, error, alpha):
             counter == 0
         else:
             counter += 1
-    return w0, w1
+    return w0_list, w1_list, e_list
 
 
 def stochastic_sum(x, y, w0, w1, alpha):
@@ -88,30 +128,46 @@ def stochastic_sum(x, y, w0, w1, alpha):
     new_w0 = alpha * error
     new_w1 = alpha * error * x
 
-    return new_w0, new_w1
+    return new_w0, new_w1, sqerror
 
 
 # divide dataset into corresponding language and sort
+"""
 en_x = X_train[:15, 0]
 en_y = X_train[:15, 1]
-norm_en_x = norm_X[:15, 0]
-norm_en_y = norm_X[:15, 1]
 
 fr_x = X_train[15:, 0]
 fr_y = X_train[15:, 1]
+# alpha = 0.025  # learning rate
+alpha = 1e-5  # used when not normalized
+error = 1e-10  # use lower value for normalized data
+
+w0, w1, e = stochastic_gradient_descent(norm_en_x, norm_en_y, error, alpha)
+
+w0_fr, w1_fr, e_fr = stochastic_gradient_descent(fr_x, fr_y, error, alpha)
+"""
+
+
+norm_en_x = norm_X[:15, 0]
+norm_en_y = norm_X[:15, 1]
 norm_fr_x = norm_X[15:, 0]
 norm_fr_y = norm_X[15:, 1]
+[b_en, m_en] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000)
+[b_fr, m_fr] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000)
 
-# alpha = 0.025  # learning rate
-alpha = 1e-9  # used when not normalized
-error = 1e-3  # use lower value for normalized data
-
-w0, w1 = stochastic_gradient_descent(en_x, en_y, error, alpha)
-
+"""
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+x_t = np.linspace(10000, 60000, len(e))
+y_t = np.linspace(500, 5000, len(e))
+surf = ax.plot_trisurf(x_t, y_t, e, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+plt.show()"""
 plt.figure(1)
-plt.plot(fr_x, fr_y, 'bs', en_x, en_y, 'g^')
+plt.plot(norm_fr_x, norm_fr_y, 'bs', norm_en_x, norm_en_y, 'g^')
 #plt.legend('French', 'English')
 plt.xlabel('Number of characters')
 plt.ylabel('Number of A:s')
-plt.plot(en_x, w1*en_x + w0, 'r--')
+plt.plot(norm_en_x, m_en*norm_en_x + b_en, 'g--')
+plt.plot(norm_fr_x, m_fr*norm_fr_x + b_fr, 'b--')
+#plt.plot(fr_x, w1_fr*fr_x + w0_fr, 'b--')
 plt.show()
