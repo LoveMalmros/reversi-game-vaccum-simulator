@@ -43,6 +43,8 @@ y_test_predicted = classifier.predict(X_train)
 # fetch weights
 # w0 = y_test_predicted[0::2]
 # w1 = y_test_predicted[1::2]
+
+
 def parse_sparse_format(x_data):
     format_string = ''
     for x in x_data[:15]:
@@ -55,6 +57,7 @@ def parse_sparse_format(x_data):
         format_string += '2:' + str(x[1]) + '\n'
     return format_string[:-1]
 
+
 def compute_error_for_line_given_points(b, m, points):
     totalError = 0
     for i in range(0, len(points)):
@@ -62,6 +65,7 @@ def compute_error_for_line_given_points(b, m, points):
         y = points[i, 1]
         totalError += (y - (m * x + b)) ** 2
     return totalError / float(len(points))
+
 
 def stoch_step_gradient(b_current, m_current, points, learningRate):
     b_gradient = 0
@@ -74,6 +78,7 @@ def stoch_step_gradient(b_current, m_current, points, learningRate):
     new_b = b_current + (learningRate * b_gradient)
     new_m = m_current + (learningRate * m_gradient)
     return [new_b, new_m]
+
 
 def batch_step_gradient(b_current, m_current, points, learningRate, i,  q):
     divider = learningRate / q
@@ -88,6 +93,7 @@ def batch_step_gradient(b_current, m_current, points, learningRate, i,  q):
     new_m = m_current + divider*(learningRate * batch_m)
     return [new_b, new_m]
 
+
 def gradient_descent_runner(points, starting_b, starting_m, learning_rate, num_iterations, stoch):
     b = starting_b
     m = starting_m
@@ -99,12 +105,26 @@ def gradient_descent_runner(points, starting_b, starting_m, learning_rate, num_i
             b, m = batch_step_gradient(b, m, points, learning_rate, j*3, 3)
     return [b, m]
 
+
+def gradient_ascent_runner(points, starting_w, learning_rate, num_iterations, stoch):
+    w = starting_w
+    # print(w)
+    for i in range(num_iterations):
+        if(stoch):
+            w = stoch_step_ascent(w, points, learning_rate)
+        # else:
+        #    j = i % 5
+        #    w = batch_step_ascent(w, points, learning_rate, j*3, 3)
+    return w
+
+
 def linear_classifier(b, m, x1, x2):
-    print(m*x1 + b - x2)
+    #print(m*x1 + b - x2)
     if m*x1 + b - x2 > 0:
         return ENGLISH_CLASSIFIER
-    else: 
+    else:
         return FRENCH_CLASSIFIER
+
 
 def reader_sparse_data(data):
     data_split = data.split(' ')
@@ -112,6 +132,7 @@ def reader_sparse_data(data):
     x1 = data_split[1].split(':')[1]
     x2 = data_split[2].split(':')[1]
     return classifier, x1, x2
+
 
 def leave_one_out_validation(sparse_data):
     data = sparse_data.split('\n')
@@ -122,22 +143,61 @@ def leave_one_out_validation(sparse_data):
         print(int(c) == linear_classifier(b, m, float(x1), float(x2)))
 
 
+def leave_one_out_validation_logistic(sparse_data):
+    data = sparse_data.split('\n')
+    for i, line in enumerate(data):
+        temp_norm_X = np.delete(norm_X, i, 0)
+        w = gradient_ascent_runner(temp_norm_X, 0, 1e-3, 1000, True)
+        [c, x1, x2] = reader_sparse_data(line)
+        print(int(c) == logistic_classifier(w, float(x1)))
+
+
+# not returning correct weights, all under 0.5..?
+def stoch_step_ascent(w_current, data, learningRate):
+    w_gradient = 0
+    for i in range(0, len(data)):
+        x = data[i, 0]
+        y = data[i, 1]
+        w_gradient += (y - (1 / (1 + np.exp(-w_current * x))))
+    new_w = w_current + (learningRate * w_gradient)
+    return new_w
+
+
+def logistic_classifier(w, x):
+    # probability of being in class FRENCH (1) given x
+    P = (1 / (1 + np.exp(-w * x)))
+    print(P)
+    if P > 0.5:
+        return FRENCH_CLASSIFIER
+    else:
+        return ENGLISH_CLASSIFIER
+
+# TODO implement stop criterion as least misclassified samples, see slides
+# känns som perceptronen bör felklassificera några eftersom de vill att man gör logistic regression (och det ovan)
+# som enligt litteratur skulle vara mycket bättre..?
+# TODO learningRate which changes as 1000/(1000 + iteration)
+
+
 norm_en_x = norm_X[:15, 0]
 norm_fr_x = norm_X[15:, 0]
 norm_en_y = norm_X[:15, 1]
 norm_fr_y = norm_X[15:, 1]
 norm_x = norm_X[:, 0]
-leave_one_out_validation(parse_sparse_format(norm_X))
+# leave_one_out_validation(parse_sparse_format(norm_X))
 
-[b_en, m_en] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000, True)
-[b_fr, m_fr] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000, True)
+#[b_en, m_en] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000, True)
+#[b_fr, m_fr] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000, True)
 
-##BATCH
+# BATCH
 #[b_en2, m_en2] = gradient_descent_runner(norm_X[:15], 0, 0, 1e-1, 1000, False)
 #[b_fr2, m_fr2] = gradient_descent_runner(norm_X[15:], 0, 0, 1e-1, 1000, False)
 
+#[b, m] = gradient_descent_runner(norm_X, 0, 0, 1e-3, 5000, True)
 
-[b, m] = gradient_descent_runner(norm_X, 0, 0, 1e-3, 5000, True)
+# logistic regression
+w = gradient_ascent_runner(norm_X, 0, 1e-3, 5000, True)
+print(w)
+leave_one_out_validation_logistic(parse_sparse_format(norm_X))
 
 """
 fig = plt.figure()
@@ -145,14 +205,16 @@ ax = fig.gca(projection='3d')
 x_t = np.linspace(10000, 60000, len(e))
 y_t = np.linspace(500, 5000, len(e))
 surf = ax.plot_trisurf(x_t, y_t, e, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-plt.show()"""
-plt.figure(1)
-plt.plot(norm_fr_x, norm_fr_y, 'bs', norm_en_x, norm_en_y, 'g^')
-#plt.legend('French', 'English')
-plt.xlabel('Number of characters')
-plt.ylabel('Number of A:s')
-plt.plot(norm_en_x, m_en*norm_en_x + b_en, 'g--')
-plt.plot(norm_fr_x, m_fr*norm_fr_x + b_fr, 'b--')
-plt.plot(norm_x, m*norm_x + b, 'r--')
-#plt.plot(fr_x, w1_fr*fr_x + w0_fr, 'b--')
 plt.show()
+"""
+# plt.figure(1)
+# plt.plot(norm_fr_x, norm_fr_y, 'bs', norm_en_x, norm_en_y, 'g^')
+# #plt.legend('French', 'English')
+# plt.xlabel('Number of characters')
+# plt.ylabel('Number of A:s')
+# #plt.plot(norm_en_x, m_en*norm_en_x + b_en, 'g')
+# #plt.plot(norm_fr_x, m_fr*norm_fr_x + b_fr, 'b')
+# #plt.plot(norm_x, m*norm_x + b, 'r')
+# #plt.plot(fr_x, w1_fr*fr_x + w0_fr, 'b--')
+
+# plt.show()
