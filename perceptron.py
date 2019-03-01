@@ -133,6 +133,40 @@ def multi_stoch_step_gradient(b_current, m1_current, m2_current, points, ys, lea
     new_m1 = m1_current + (learningRate * m1_gradient)
     new_m2 = m2_current + (learningRate * m2_gradient)
     return [new_b, new_m1, new_m2]
+fit_intercept = False
+
+def __loss(h, y):
+    return (-y * np.log(h) - (1 - y) * np.log(1 - h)).mean()
+
+def __add_intercept(X):
+    intercept = np.ones((X.shape[0], 1))
+    return np.concatenate((intercept, X), axis=1)
+    
+def __sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def fit(X, y, num_iter):
+    if fit_intercept:
+        X = __add_intercept(X)
+        
+        # weights initialization
+    theta = np.zeros(X.shape[1])
+        
+    for i in range(num_iter):
+        lr = 1000 / (1000+i)
+        z = np.dot(X, theta)
+        h = __sigmoid(z)
+        gradient = np.dot(X.T, (h - y)) / y.size
+        theta -= lr * gradient
+    return theta
+
+def predict_prob(X, theta):
+    P = __sigmoid(np.dot(X, theta))
+    print(P)
+    if P > 0.5:
+        return FRENCH_CLASSIFIER
+    else:
+        return ENGLISH_CLASSIFIER
 
 def gradient_ascent_runner(points, ys, starting_m1, starting_m2, starting_b, learning_rate, num_iterations, stoch):
     m1 = starting_m1
@@ -178,16 +212,11 @@ def leave_one_out_validation_logistic(sparse_data):
     for i, line in enumerate(data):
         temp_norm_X = np.delete(norm_X, i, 0)
         temp_ys = np.delete(y_train, i, 0)
-        #[[m1, m2],e] = gradient_ascent_runner(temp_norm_X, 0, 0, 0, 0.27, 3000, True)
-        #[[m1, m2],e] = train(temp_norm_X, 0, 0, 0, 0.27, 3000, True)
-        [b, m1, m2] = multi_gradient_descent_runner(temp_norm_X, temp_ys, 0, 0, 0, 0.02, 1000, True)
-        plt.figure(i)
-        #[[m1, m2], cost] = train(temp_norm_X, temp_ys, [0.0001, 0.0001], 0.5, 1000)
-        plt.plot(norm_fr_x, norm_fr_y, 'bs', norm_en_x, norm_en_y, 'g^')
-        plt.plot(norm_x, (b-(m1*norm_x))/m2, 'r')
-        plt.show()
+        theta = fit(temp_norm_X, temp_ys, 200000)
+
         [c, x1, x2] = reader_sparse_data(line)
-        print(int(c) == logistic_classifier(m1, m2, b, float(x1), float(x2)))
+        print(int(c) == predict_prob([float(x1), float(x2)], theta))
+        #print(int(c) == logistic_classifier(m1, m2, b, float(x1), float(x2)))
 
 
 # not returning correct weights, all under 0.5..?
